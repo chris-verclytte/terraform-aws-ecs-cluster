@@ -86,6 +86,7 @@ resource "aws_security_group" "container_instance" {
 # AutoScaling resources
 #
 data "template_file" "container_instance_base_cloud_config" {
+  count    = "${var.use_default_user_data}"
   template = "${file("${path.module}/cloud-config/base-container-instance.yml.tpl")}"
 
   vars {
@@ -94,17 +95,13 @@ data "template_file" "container_instance_base_cloud_config" {
 }
 
 data "template_cloudinit_config" "container_instance_cloud_config" {
+  count         = "${var.use_default_user_data}"
   gzip          = false
   base64_encode = false
 
   part {
     content_type = "text/cloud-config"
     content      = "${data.template_file.container_instance_base_cloud_config.rendered}"
-  }
-
-  part {
-    content_type = "${var.cloud_config_content_type}"
-    content      = "${var.cloud_config_content}"
   }
 }
 
@@ -169,7 +166,7 @@ resource "aws_launch_template" "container_instance" {
   instance_type                        = "${var.instance_type}"
   key_name                             = "${var.key_name}"
   vpc_security_group_ids               = ["${aws_security_group.container_instance.id}"]
-  user_data                            = "${base64encode(data.template_cloudinit_config.container_instance_cloud_config.rendered)}"
+  user_data                            = "${base64encode(var.use_default_user_data ? data.template_cloudinit_config.container_instance_cloud_config.rendered : var.user_data)}"
 
   monitoring {
     enabled = "${var.detailed_monitoring}"

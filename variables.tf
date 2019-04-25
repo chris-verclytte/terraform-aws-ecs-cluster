@@ -58,10 +58,12 @@ variable "detailed_monitoring" {
 
 variable "key_name" {}
 
-variable "cloud_config_content" {}
+variable "user_data" {
+  default = ""
+}
 
-variable "cloud_config_content_type" {
-  default = "text/cloud-config"
+variable "use_default_user_data" {
+  default = true
 }
 
 variable "health_check_grace_period" {

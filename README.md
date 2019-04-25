@@ -15,6 +15,9 @@ A Terraform module to create an Amazon Web Services (AWS) EC2 Container Service 
 
 This module creates a security group that gets associated with the launch template for the ECS cluster Auto Scaling group. By default, the security group contains no rules. In order for network traffic to flow egress or ingress (including communication with ECS itself), you must associate all of the appropriate `aws_security_group_rule` resources with the `container_instance_security_group_id` module output.
 
+This module does not make assumptions about the `user_data` that should be used.
+Instead, it is shipped with a default cloud init file you could use for simple use cases. If this default value does not fit your need you can desactivate it by passing `use_default_user_data` to `false` and by specifying your own `user_data`.
+
 See below for an example.
 
 ```hcl
@@ -26,14 +29,25 @@ data "template_file" "container_instance_cloud_config" {
   }
 }
 
+data "template_cloudinit_config" "container_instance_cloud_config" {
+  gzip          = false
+  base64_encode = false
+
+  part {
+    content_type = "text/cloud-config"
+    content      = "${data.template_file.container_instance_cloud_config.rendered}"
+  }
+}
+
 module "container_service_cluster" {
   source = "github.com/azavea/terraform-aws-ecs-cluster?ref=3.0.0"
 
-  vpc_id        = "vpc-20f74844"
-  ami_id        = "ami-b2df2ca4"
-  instance_type = "t2.micro"
-  key_name      = "hector"
-  cloud_config_content  = "${data.template_file.container_instance_cloud_config.rendered}"
+  vpc_id                = "vpc-20f74844"
+  ami_id                = "ami-b2df2ca4"
+  instance_type         = "t2.micro"
+  key_name              = "hector"
+  use_default_user_data = false
+  user_data             = "${data.template_file.container_instance_cloud_config.rendered}"
 
   root_block_device_type = "gp2"
   root_block_device_size = "10"
